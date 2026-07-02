@@ -1,4 +1,4 @@
 ---
-# Optional vaulted variables can live here.
-# Example:
+# Здесь можно хранить секретные или локальные переменные под ansible-vault.
+# Пример:
 # ansible_ssh_private_key_file: ~/.ssh/id_ed25519
