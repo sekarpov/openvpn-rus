@@ -1,7 +1,11 @@
 ---
 openvpn_profile_name: rus
 openvpn_instance_name: server
-openvpn_remote_host: vpn.example.com
+openvpn_remote_host: 217.18.60.199
+openvpn_service_name: "openvpn@{{ openvpn_instance_name }}"
+openvpn_legacy_service_name: "openvpn@{{ openvpn_instance_name }}"
+openvpn_disable_legacy_service: false
+openvpn_mask_legacy_service: false
 openvpn_port: 1194
 openvpn_proto: udp
 openvpn_dev: tun
@@ -9,34 +13,36 @@ openvpn_public_interface: eth0
 openvpn_server_network: 10.8.0.0
 openvpn_server_netmask: 255.255.255.0
 openvpn_server_cidr: 10.8.0.0/24
+openvpn_server_conf_dir: /etc/openvpn
+openvpn_server_conf_path: /etc/openvpn/server.conf
 openvpn_redirect_gateway: true
 openvpn_push_dns:
-  - 1.1.1.1
-  - 1.0.0.1
+  - 208.67.222.222
+  - 208.67.220.220
 openvpn_push_routes: []
 openvpn_verb: 3
 openvpn_client_verb: 3
 openvpn_run_user: nobody
 openvpn_run_group: nogroup
 
-openvpn_easy_rsa_req_country: NL
-openvpn_easy_rsa_req_province: NH
-openvpn_easy_rsa_req_city: Amsterdam
+openvpn_easy_rsa_req_country: US
+openvpn_easy_rsa_req_province: CA
+openvpn_easy_rsa_req_city: SanFrancisco
 openvpn_easy_rsa_req_org: ExampleOrg
-openvpn_easy_rsa_req_email: vpn@example.com
-openvpn_easy_rsa_req_ou: Infra
-openvpn_ca_common_name: Example VPN CA
+openvpn_easy_rsa_req_email: admin@example.com
+openvpn_easy_rsa_req_ou: MyOrganizationalUnit
+openvpn_ca_common_name: Easy-RSA CA
 openvpn_server_common_name: server
 
-openvpn_cert_algo: ec
+openvpn_cert_algo: rsa
 openvpn_cert_curve: prime256v1
 openvpn_ca_expire_days: 3650
 openvpn_server_expire_days: 825
 openvpn_client_expire_days: 825
 
-openvpn_tls_crypt_enabled: true
+openvpn_tls_crypt_enabled: false
 openvpn_tls_version_min: "1.2"
-openvpn_auth_digest: SHA256
+openvpn_auth_digest: SHA1
 openvpn_data_ciphers:
   - AES-256-GCM
   - AES-128-GCM
@@ -47,6 +53,6 @@ openvpn_ecdh_curve: prime256v1
 
 openvpn_manage_iptables: true
 openvpn_forward_policy: DROP
-openvpn_manage_debian_eol_repos: false
+openvpn_manage_debian_eol_repos: true
 openvpn_client_name_regex: '^[a-z0-9][a-z0-9_.-]{1,62}$'
 openvpn_revoke_archive_local_artifact: true
