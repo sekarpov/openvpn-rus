@@ -1,0 +1,8 @@
+---
+- name: List OpenVPN clients
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: list_clients

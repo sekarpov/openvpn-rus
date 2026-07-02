@@ -1,0 +1,8 @@
+---
+- name: Render OpenVPN client config
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: client_config

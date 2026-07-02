@@ -1,0 +1,15 @@
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD {{ openvpn_forward_policy }} [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -s {{ openvpn_server_cidr }} -o {{ openvpn_public_interface }} -j ACCEPT
+-A FORWARD -d {{ openvpn_server_cidr }} -i {{ openvpn_public_interface }} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s {{ openvpn_server_cidr }} -o {{ openvpn_public_interface }} -j MASQUERADE
+COMMIT

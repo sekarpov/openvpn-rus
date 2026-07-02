@@ -1,0 +1,27 @@
+---
+- name: Ensure openvpn_client_name was provided
+  ansible.builtin.assert:
+    that:
+      - openvpn_client_name | length > 0
+      - openvpn_client_name is match(openvpn_client_name_regex)
+    fail_msg: "CLIENT must match {{ openvpn_client_name_regex }}"
+
+- name: Check that PKI index exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/index.txt"
+  register: openvpn_index_stat
+
+- name: Ensure PKI is initialized
+  ansible.builtin.assert:
+    that:
+      - openvpn_index_stat.stat.exists
+    fail_msg: "PKI is not initialized. Run make provision first."
+
+- name: Read latest PKI status for requested CN
+  ansible.builtin.shell: |
+    set -o pipefail
+    awk -F '\t' '$6 == "/CN={{ openvpn_client_name }}" { status=$1 } END { if (status == "") { print "absent" } else { print status } }' "{{ openvpn_pki_dir }}/index.txt"
+  args:
+    executable: /bin/bash
+  register: openvpn_client_index_status
+  changed_when: false

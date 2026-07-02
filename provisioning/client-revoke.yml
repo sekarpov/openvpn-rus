@@ -1,0 +1,8 @@
+---
+- name: Revoke OpenVPN client certificate
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: client_revoke

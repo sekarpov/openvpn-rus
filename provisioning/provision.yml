@@ -1,0 +1,8 @@
+---
+- name: Provision OpenVPN server
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: provision

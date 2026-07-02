@@ -1,0 +1,47 @@
+---
+- name: Check that server certificate exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/issued/{{ openvpn_server_common_name }}.crt"
+  register: openvpn_server_cert_existing_stat
+
+- name: Ensure server certificate exists before renewal
+  ansible.builtin.assert:
+    that:
+      - openvpn_server_cert_existing_stat.stat.exists
+    fail_msg: "Server certificate does not exist. Run make provision first."
+
+- name: Revoke current server certificate
+  ansible.builtin.command: "./easyrsa --batch revoke {{ openvpn_server_common_name }}"
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+
+- name: Regenerate CRL after server renewal revoke
+  ansible.builtin.command: ./easyrsa gen-crl
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+
+- name: Remove existing server certificate material before reissue
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ openvpn_pki_dir }}/issued/{{ openvpn_server_common_name }}.crt"
+    - "{{ openvpn_pki_dir }}/private/{{ openvpn_server_common_name }}.key"
+    - "{{ openvpn_pki_dir }}/reqs/{{ openvpn_server_common_name }}.req"
+
+- name: Issue new server certificate
+  ansible.builtin.command: "./easyrsa --batch build-server-full {{ openvpn_server_common_name }} nopass"
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+  environment:
+    EASYRSA_CERT_EXPIRE: "{{ openvpn_server_expire_days | string }}"
+
+- name: Redeploy server files
+  ansible.builtin.import_tasks: deploy_server.yml
+
+- name: Flush handlers after server certificate renewal
+  ansible.builtin.meta: flush_handlers
+
+- name: Report server renewal result
+  ansible.builtin.debug:
+    msg: "Renewed server certificate for CN={{ openvpn_server_common_name }}"

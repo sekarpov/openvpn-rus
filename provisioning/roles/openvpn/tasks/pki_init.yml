@@ -1,0 +1,75 @@
+---
+- name: Check whether CA certificate exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/ca.crt"
+  register: openvpn_ca_cert_stat
+
+- name: Check whether server certificate exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/issued/{{ openvpn_server_common_name }}.crt"
+  register: openvpn_server_cert_stat
+
+- name: Check whether tls-crypt key exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_server_conf_dir }}/{{ openvpn_tls_crypt_filename }}"
+  register: openvpn_tls_crypt_stat
+  when: openvpn_tls_crypt_enabled
+
+- name: Check whether DH parameters exist
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/{{ openvpn_dh_filename }}"
+  register: openvpn_dh_stat
+  when: openvpn_use_dh
+
+- name: Initialize PKI
+  ansible.builtin.command: ./easyrsa init-pki
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+    creates: "{{ openvpn_pki_dir }}/private"
+
+- name: Build CA
+  ansible.builtin.command: ./easyrsa --batch build-ca nopass
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+    creates: "{{ openvpn_pki_dir }}/ca.crt"
+  environment:
+    EASYRSA_REQ_CN: "{{ openvpn_ca_common_name }}"
+    EASYRSA_CA_EXPIRE: "{{ openvpn_ca_expire_days | string }}"
+  when: not openvpn_ca_cert_stat.stat.exists
+
+- name: Build server certificate
+  ansible.builtin.command: "./easyrsa --batch build-server-full {{ openvpn_server_common_name }} nopass"
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+    creates: "{{ openvpn_pki_dir }}/issued/{{ openvpn_server_common_name }}.crt"
+  environment:
+    EASYRSA_CERT_EXPIRE: "{{ openvpn_server_expire_days | string }}"
+  when: not openvpn_server_cert_stat.stat.exists
+
+- name: Generate initial CRL
+  ansible.builtin.command: ./easyrsa gen-crl
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+    creates: "{{ openvpn_pki_dir }}/crl.pem"
+
+- name: Generate tls-crypt key
+  ansible.builtin.command:
+    argv:
+      - openvpn
+      - --genkey
+      - --secret
+      - "{{ openvpn_server_conf_dir }}/{{ openvpn_tls_crypt_filename }}"
+  args:
+    creates: "{{ openvpn_server_conf_dir }}/{{ openvpn_tls_crypt_filename }}"
+  when:
+    - openvpn_tls_crypt_enabled
+    - not openvpn_tls_crypt_stat.stat.exists
+
+- name: Generate DH parameters
+  ansible.builtin.command: ./easyrsa gen-dh
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+    creates: "{{ openvpn_pki_dir }}/{{ openvpn_dh_filename }}"
+  when:
+    - openvpn_use_dh
+    - not openvpn_dh_stat.stat.exists

@@ -1,0 +1,42 @@
+client
+dev {{ openvpn_dev }}
+proto {{ openvpn_proto }}
+remote {{ openvpn_remote_host }} {{ openvpn_port }}
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+verify-x509-name {{ openvpn_server_common_name }} name
+tls-version-min {{ openvpn_tls_version_min }}
+auth {{ openvpn_auth_digest }}
+{% if openvpn_use_legacy_cipher_config %}
+ncp-ciphers {{ openvpn_data_ciphers | join(':') }}
+cipher {{ openvpn_data_ciphers_fallback }}
+{% else %}
+data-ciphers {{ openvpn_data_ciphers | join(':') }}
+data-ciphers-fallback {{ openvpn_data_ciphers_fallback }}
+{% if openvpn_emit_legacy_cipher_directive %}
+cipher {{ openvpn_data_ciphers_fallback }}
+{% endif %}
+{% endif %}
+verb {{ openvpn_client_verb }}
+auth-nocache
+
+<ca>
+{{ openvpn_client_ca_slurp.content | b64decode | trim }}
+</ca>
+
+<cert>
+{{ openvpn_client_cert_slurp.content | b64decode | trim }}
+</cert>
+
+<key>
+{{ openvpn_client_key_slurp.content | b64decode | trim }}
+</key>
+
+{% if openvpn_tls_crypt_enabled %}
+<tls-crypt>
+{{ openvpn_client_tls_crypt_slurp.content | b64decode | trim }}
+</tls-crypt>
+{% endif %}

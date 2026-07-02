@@ -1,0 +1,15 @@
+set_var EASYRSA                 "{{ openvpn_easy_rsa_dir }}"
+set_var EASYRSA_PKI             "{{ openvpn_pki_dir }}"
+set_var EASYRSA_DN              "cn_only"
+set_var EASYRSA_REQ_COUNTRY     "{{ openvpn_easy_rsa_req_country }}"
+set_var EASYRSA_REQ_PROVINCE    "{{ openvpn_easy_rsa_req_province }}"
+set_var EASYRSA_REQ_CITY        "{{ openvpn_easy_rsa_req_city }}"
+set_var EASYRSA_REQ_ORG         "{{ openvpn_easy_rsa_req_org }}"
+set_var EASYRSA_REQ_EMAIL       "{{ openvpn_easy_rsa_req_email }}"
+set_var EASYRSA_REQ_OU          "{{ openvpn_easy_rsa_req_ou }}"
+set_var EASYRSA_REQ_CN          "{{ openvpn_ca_common_name }}"
+set_var EASYRSA_ALGO            "{{ openvpn_cert_algo }}"
+{% if openvpn_cert_algo == 'ec' %}
+set_var EASYRSA_CURVE           "{{ openvpn_cert_curve }}"
+{% endif %}
+set_var EASYRSA_CA_EXPIRE       "{{ openvpn_ca_expire_days }}"

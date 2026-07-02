@@ -1,0 +1,4 @@
+---
+# Optional vaulted variables can live here.
+# Example:
+# ansible_ssh_private_key_file: ~/.ssh/id_ed25519

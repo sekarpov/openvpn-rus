@@ -1,0 +1,28 @@
+---
+- name: Validate requested client
+  ansible.builtin.import_tasks: validate_client.yml
+
+- name: Check client certificate file exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/issued/{{ openvpn_client_name }}.crt"
+  register: openvpn_client_cert_file_stat
+
+- name: Check client private key file exists
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/private/{{ openvpn_client_name }}.key"
+  register: openvpn_client_key_file_stat
+
+- name: Ensure client certificate material exists and is active
+  ansible.builtin.assert:
+    that:
+      - openvpn_client_cert_file_stat.stat.exists
+      - openvpn_client_key_file_stat.stat.exists
+      - openvpn_client_index_status.stdout == "V"
+    fail_msg: "Client {{ openvpn_client_name }} is not active in PKI. Create or renew it before rendering."
+
+- name: Rebuild local client artifact
+  ansible.builtin.import_tasks: render_client_artifact.yml
+
+- name: Report generated client profile path
+  ansible.builtin.debug:
+    msg: "Rendered {{ openvpn_local_client_artifact_path }}"

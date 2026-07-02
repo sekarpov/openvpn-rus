@@ -1,0 +1,27 @@
+---
+- name: Render sysctl settings for OpenVPN
+  ansible.builtin.template:
+    src: sysctl-openvpn.conf.j2
+    dest: "{{ openvpn_sysctl_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: openvpn_manage_sysctl
+  notify: Reload sysctl
+
+- name: Render iptables rules for OpenVPN
+  ansible.builtin.template:
+    src: rules.v4.j2
+    dest: "{{ openvpn_iptables_rules_v4_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: openvpn_manage_iptables
+  notify: Reload netfilter-persistent
+
+- name: Ensure netfilter-persistent is enabled
+  ansible.builtin.service:
+    name: netfilter-persistent
+    enabled: true
+    state: started
+  when: openvpn_manage_iptables

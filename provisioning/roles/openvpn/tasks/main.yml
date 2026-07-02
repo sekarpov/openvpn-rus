@@ -1,0 +1,78 @@
+---
+- name: Validate requested operation
+  ansible.builtin.assert:
+    that:
+      - openvpn_operation in openvpn_supported_operations
+    fail_msg: "Unsupported openvpn_operation={{ openvpn_operation }}"
+
+- name: Run provisioning workflow
+  ansible.builtin.import_tasks: preflight.yml
+  when: openvpn_operation == "provision"
+
+- name: Run provisioning workflow
+  ansible.builtin.import_tasks: install.yml
+  when: openvpn_operation == "provision"
+
+- name: Read runtime OpenVPN facts for provisioning
+  ansible.builtin.import_tasks: runtime_facts.yml
+  when: openvpn_operation == "provision"
+
+- name: Bootstrap PKI
+  ansible.builtin.import_tasks: pki_init.yml
+  when: openvpn_operation == "provision"
+
+- name: Deploy server files
+  ansible.builtin.import_tasks: deploy_server.yml
+  when: openvpn_operation == "provision"
+
+- name: Configure firewall and sysctl
+  ansible.builtin.import_tasks: firewall.yml
+  when: openvpn_operation == "provision"
+
+- name: Ensure service is ready
+  ansible.builtin.import_tasks: service.yml
+  when: openvpn_operation == "provision"
+
+- name: Create client
+  ansible.builtin.import_tasks: runtime_facts.yml
+  when: openvpn_operation == "client_create"
+
+- name: Create client
+  ansible.builtin.import_tasks: client_create.yml
+  when: openvpn_operation == "client_create"
+
+- name: Render client config
+  ansible.builtin.import_tasks: runtime_facts.yml
+  when: openvpn_operation == "client_config"
+
+- name: Render client config
+  ansible.builtin.import_tasks: client_config.yml
+  when: openvpn_operation == "client_config"
+
+- name: Renew client certificate
+  ansible.builtin.import_tasks: runtime_facts.yml
+  when: openvpn_operation == "client_renew"
+
+- name: Renew client certificate
+  ansible.builtin.import_tasks: client_renew.yml
+  when: openvpn_operation == "client_renew"
+
+- name: Revoke client certificate
+  ansible.builtin.import_tasks: client_revoke.yml
+  when: openvpn_operation == "client_revoke"
+
+- name: Renew server certificate
+  ansible.builtin.import_tasks: runtime_facts.yml
+  when: openvpn_operation == "server_renew"
+
+- name: Renew server certificate
+  ansible.builtin.import_tasks: server_renew.yml
+  when: openvpn_operation == "server_renew"
+
+- name: List clients
+  ansible.builtin.import_tasks: list_clients.yml
+  when: openvpn_operation == "list_clients"
+
+- name: Report status
+  ansible.builtin.import_tasks: status.yml
+  when: openvpn_operation == "status"

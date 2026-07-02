@@ -1,0 +1,60 @@
+---
+- name: Preseed iptables-persistent IPv4 autosave
+  ansible.builtin.debconf:
+    name: iptables-persistent
+    question: iptables-persistent/autosave_v4
+    value: "true"
+    vtype: boolean
+
+- name: Preseed iptables-persistent IPv6 autosave
+  ansible.builtin.debconf:
+    name: iptables-persistent
+    question: iptables-persistent/autosave_v6
+    value: "false"
+    vtype: boolean
+
+- name: Install OpenVPN packages
+  ansible.builtin.apt:
+    name:
+      - openvpn
+      - easy-rsa
+      - iptables-persistent
+      - openssl
+    state: present
+    update_cache: true
+
+- name: Create OpenVPN directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ openvpn_easy_rsa_dir }}", mode: "0700" }
+    - { path: "{{ openvpn_server_conf_dir }}", mode: "0755" }
+    - { path: "/var/log/openvpn", mode: "0755" }
+    - { path: "/etc/iptables", mode: "0755" }
+
+- name: Check whether Easy-RSA sources were copied
+  ansible.builtin.stat:
+    path: "{{ openvpn_easy_rsa_dir }}/easyrsa"
+  register: openvpn_easyrsa_binary
+
+- name: Copy Easy-RSA distribution to managed directory
+  ansible.builtin.copy:
+    src: /usr/share/easy-rsa/
+    dest: "{{ openvpn_easy_rsa_dir }}/"
+    owner: root
+    group: root
+    mode: preserve
+    remote_src: true
+  when: not openvpn_easyrsa_binary.stat.exists
+
+- name: Render Easy-RSA vars
+  ansible.builtin.template:
+    src: easyrsa-vars.j2
+    dest: "{{ openvpn_easy_rsa_dir }}/vars"
+    owner: root
+    group: root
+    mode: "0600"

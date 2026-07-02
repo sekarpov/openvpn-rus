@@ -1,0 +1,8 @@
+---
+- name: Renew OpenVPN server certificate
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: server_renew

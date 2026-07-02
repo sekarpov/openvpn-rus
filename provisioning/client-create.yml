@@ -1,0 +1,8 @@
+---
+- name: Create OpenVPN client
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: client_create

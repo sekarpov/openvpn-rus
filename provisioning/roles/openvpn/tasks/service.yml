@@ -1,0 +1,48 @@
+---
+- name: Flush handlers before service checks
+  ansible.builtin.meta: flush_handlers
+
+- name: Gather service facts before OpenVPN service switch
+  ansible.builtin.service_facts:
+
+- name: Stop and disable legacy OpenVPN instance service
+  ansible.builtin.service:
+    name: "{{ openvpn_legacy_service_name }}"
+    enabled: false
+    state: stopped
+  when:
+    - openvpn_disable_legacy_service
+    - (openvpn_legacy_service_name + '.service') in ansible_facts.services
+
+- name: Mask legacy OpenVPN instance service
+  ansible.builtin.systemd:
+    name: "{{ openvpn_legacy_service_name }}"
+    masked: true
+  when:
+    - openvpn_mask_legacy_service
+    - (openvpn_legacy_service_name + '.service') in ansible_facts.services
+
+- name: Ensure OpenVPN service is enabled and started
+  ansible.builtin.service:
+    name: "{{ openvpn_service_name }}"
+    enabled: true
+    state: started
+
+- name: Wait until OpenVPN service becomes active
+  ansible.builtin.command: "systemctl is-active {{ openvpn_service_name }}"
+  register: openvpn_service_active_wait
+  retries: 15
+  delay: 2
+  until: openvpn_service_active_wait.stdout == "active"
+  changed_when: false
+
+- name: Check OpenVPN service state
+  ansible.builtin.command: "systemctl is-active {{ openvpn_service_name }}"
+  register: openvpn_service_active
+  changed_when: false
+
+- name: Assert OpenVPN service is active
+  ansible.builtin.assert:
+    that:
+      - openvpn_service_active.stdout == "active"
+    fail_msg: "OpenVPN service {{ openvpn_service_name }} is not active"

@@ -1,0 +1,84 @@
+---
+- name: Detect EOL Debian release
+  ansible.builtin.set_fact:
+    openvpn_is_eol_debian: >-
+      {{
+        ansible_facts.distribution == 'Debian'
+        and ansible_facts.distribution_release in openvpn_debian_eol_releases
+      }}
+
+- name: Fail on EOL Debian unless archive repos are explicitly allowed
+  ansible.builtin.assert:
+    that:
+      - not openvpn_is_eol_debian or openvpn_manage_debian_eol_repos
+    fail_msg: >-
+      Host {{ inventory_hostname }} is running Debian {{ ansible_facts.distribution_release }},
+      which is end-of-life and no longer served from the default mirrors.
+      Preferred fix: upgrade the OS to a supported Debian release.
+      Temporary workaround: set openvpn_manage_debian_eol_repos=true to rewrite apt sources
+      to archive.debian.org during provisioning.
+
+- name: Check whether /etc/apt/sources.list exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list
+  register: openvpn_sources_list_stat
+  when:
+    - openvpn_is_eol_debian
+    - openvpn_manage_debian_eol_repos
+
+- name: Find apt source list files
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    recurse: true
+    file_type: file
+  register: openvpn_sources_list_d_files
+  when:
+    - openvpn_is_eol_debian
+    - openvpn_manage_debian_eol_repos
+
+- name: Build list of apt source files to patch
+  ansible.builtin.set_fact:
+    openvpn_apt_source_files: >-
+      {{
+        (openvpn_sources_list_stat.stat.exists | ternary(['/etc/apt/sources.list'], []))
+        + (openvpn_sources_list_d_files.files | default([]) | map(attribute='path') | list)
+      }}
+  when:
+    - openvpn_is_eol_debian
+    - openvpn_manage_debian_eol_repos
+
+- name: Rewrite Debian archive mirror URLs for EOL Debian
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: "https?://(?:deb|cdn-fastly|ftp)\\.debian\\.org/debian"
+    replace: "{{ openvpn_debian_archive_mirror }}"
+    backup: true
+  loop: "{{ openvpn_apt_source_files }}"
+  when:
+    - openvpn_is_eol_debian
+    - openvpn_manage_debian_eol_repos
+
+- name: Rewrite Debian security mirror URLs for EOL Debian
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: "https?://security\\.debian\\.org/debian-security"
+    replace: "{{ openvpn_debian_security_archive_mirror }}"
+    backup: true
+  loop: "{{ openvpn_apt_source_files }}"
+  when:
+    - openvpn_is_eol_debian
+    - openvpn_manage_debian_eol_repos
+
+- name: Disable Valid-Until checks for archived Debian repositories
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99openvpn-archive
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      Acquire::Check-Valid-Until "false";
+  when:
+    - openvpn_is_eol_debian
+    - openvpn_manage_debian_eol_repos
+    - openvpn_debian_archive_disable_valid_until

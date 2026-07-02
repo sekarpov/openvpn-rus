@@ -1,0 +1,55 @@
+---
+- name: Validate requested client
+  ansible.builtin.import_tasks: validate_client.yml
+
+- name: Ensure client exists and is not already revoked
+  ansible.builtin.assert:
+    that:
+      - openvpn_client_index_status.stdout == "V"
+    fail_msg: "Client {{ openvpn_client_name }} must exist and be active before renewal."
+
+- name: Revoke current client certificate
+  ansible.builtin.command: "./easyrsa --batch revoke {{ openvpn_client_name }}"
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+
+- name: Regenerate CRL after client renewal revoke
+  ansible.builtin.command: ./easyrsa gen-crl
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+
+- name: Remove existing client certificate material before reissue
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ openvpn_pki_dir }}/issued/{{ openvpn_client_name }}.crt"
+    - "{{ openvpn_pki_dir }}/private/{{ openvpn_client_name }}.key"
+    - "{{ openvpn_pki_dir }}/reqs/{{ openvpn_client_name }}.req"
+
+- name: Redeploy CRL after client renewal
+  ansible.builtin.copy:
+    src: "{{ openvpn_pki_dir }}/crl.pem"
+    dest: "{{ openvpn_server_conf_dir }}/{{ openvpn_crl_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_public }}"
+    remote_src: true
+  notify: Restart openvpn
+
+- name: Issue new client certificate
+  ansible.builtin.command: "./easyrsa --batch build-client-full {{ openvpn_client_name }} nopass"
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+  environment:
+    EASYRSA_CERT_EXPIRE: "{{ openvpn_client_expire_days | string }}"
+
+- name: Flush handlers before rebuilding local artifact
+  ansible.builtin.meta: flush_handlers
+
+- name: Rebuild local client artifact after renewal
+  ansible.builtin.import_tasks: render_client_artifact.yml
+
+- name: Report renewed client profile path
+  ansible.builtin.debug:
+    msg: "Renewed {{ openvpn_local_client_artifact_path }}"

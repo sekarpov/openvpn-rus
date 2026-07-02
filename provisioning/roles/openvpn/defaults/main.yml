@@ -1,0 +1,109 @@
+---
+openvpn_operation: provision
+
+openvpn_profile_name: default
+openvpn_inventory_name: default
+openvpn_instance_name: server
+
+openvpn_remote_host: "{{ ansible_host | default(inventory_hostname) }}"
+openvpn_port: 1194
+openvpn_proto: udp
+openvpn_dev: tun
+
+openvpn_server_network: 10.8.0.0
+openvpn_server_netmask: 255.255.255.0
+openvpn_server_cidr: 10.8.0.0/24
+openvpn_topology: subnet
+openvpn_redirect_gateway: true
+openvpn_push_dns:
+  - 1.1.1.1
+  - 1.0.0.1
+openvpn_push_routes: []
+openvpn_keepalive_interval: 10
+openvpn_keepalive_timeout: 120
+openvpn_public_interface: eth0
+openvpn_forward_policy: DROP
+
+openvpn_run_user: nobody
+openvpn_run_group: nogroup
+openvpn_verb: 3
+openvpn_client_verb: 3
+openvpn_status_log: "/var/log/openvpn/{{ openvpn_instance_name }}-status.log"
+openvpn_log_file: "/var/log/openvpn/{{ openvpn_instance_name }}.log"
+
+openvpn_easy_rsa_dir: /etc/openvpn/easy-rsa
+openvpn_pki_dir: "{{ openvpn_easy_rsa_dir }}/pki"
+openvpn_server_conf_dir: /etc/openvpn/server
+openvpn_sysctl_file: /etc/sysctl.d/99-openvpn-ip-forward.conf
+openvpn_iptables_rules_v4_path: /etc/iptables/rules.v4
+openvpn_server_cert_filename: server.crt
+openvpn_server_key_filename: server.key
+openvpn_ca_cert_filename: ca.crt
+openvpn_crl_filename: crl.pem
+openvpn_tls_crypt_filename: tls-crypt.key
+openvpn_dh_filename: dh.pem
+
+openvpn_ca_common_name: OpenVPN CA
+openvpn_server_common_name: server
+openvpn_easy_rsa_req_country: US
+openvpn_easy_rsa_req_province: CA
+openvpn_easy_rsa_req_city: SanFrancisco
+openvpn_easy_rsa_req_org: ExampleOrg
+openvpn_easy_rsa_req_email: admin@example.com
+openvpn_easy_rsa_req_ou: Infra
+
+openvpn_cert_algo: ec
+openvpn_cert_curve: prime256v1
+openvpn_ca_expire_days: 3650
+openvpn_server_expire_days: 825
+openvpn_client_expire_days: 825
+
+openvpn_tls_crypt_enabled: true
+openvpn_tls_version_min: "1.2"
+openvpn_auth_digest: SHA256
+openvpn_data_ciphers:
+  - AES-256-GCM
+  - AES-128-GCM
+openvpn_data_ciphers_fallback: AES-256-CBC
+openvpn_emit_legacy_cipher_directive: false
+openvpn_force_legacy_cipher_config: false
+openvpn_use_dh: false
+openvpn_ecdh_curve: prime256v1
+
+openvpn_manage_iptables: true
+openvpn_manage_sysctl: true
+openvpn_manage_debian_eol_repos: true
+openvpn_debian_eol_releases:
+  - jessie
+  - stretch
+  - buster
+openvpn_debian_archive_mirror: http://archive.debian.org/debian
+openvpn_debian_security_archive_mirror: http://archive.debian.org/debian-security
+openvpn_debian_archive_disable_valid_until: true
+
+openvpn_client_name_regex: '^[a-z0-9][a-z0-9_.-]{1,62}$'
+openvpn_client_name: ""
+openvpn_local_clients_dir: "{{ lookup('env', 'PWD') }}/clients"
+openvpn_local_client_profile_dir: "{{ openvpn_local_clients_dir }}/{{ openvpn_profile_name }}"
+openvpn_local_client_artifact_path: "{{ openvpn_local_client_profile_dir }}/{{ openvpn_client_name }}.ovpn"
+openvpn_local_revoked_dir: "{{ openvpn_local_client_profile_dir }}/revoked"
+openvpn_revoke_archive_local_artifact: true
+
+openvpn_file_mode_private: "0600"
+openvpn_file_mode_public: "0644"
+
+openvpn_service_name: "openvpn-server@{{ openvpn_instance_name }}"
+openvpn_legacy_service_name: "openvpn@{{ openvpn_instance_name }}"
+openvpn_disable_legacy_service: true
+openvpn_mask_legacy_service: true
+openvpn_server_conf_path: "{{ openvpn_server_conf_dir }}/{{ openvpn_instance_name }}.conf"
+
+openvpn_supported_operations:
+  - provision
+  - client_create
+  - client_config
+  - client_renew
+  - client_revoke
+  - server_renew
+  - list_clients
+  - status

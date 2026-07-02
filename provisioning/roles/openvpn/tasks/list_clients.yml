@@ -1,0 +1,46 @@
+---
+- name: Read PKI index
+  ansible.builtin.slurp:
+    src: "{{ openvpn_pki_dir }}/index.txt"
+  register: openvpn_index_slurp
+
+- name: Create temporary local index file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: .index.txt
+  register: openvpn_local_index_tmp
+  delegate_to: localhost
+  become: false
+
+- name: Write PKI index to local temporary file
+  ansible.builtin.copy:
+    content: "{{ openvpn_index_slurp.content | b64decode }}"
+    dest: "{{ openvpn_local_index_tmp.path }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+
+- name: Render client list from PKI index
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ playbook_dir }}/../scripts/pki_index_report.py"
+      - --mode
+      - list
+      - --index
+      - "{{ openvpn_local_index_tmp.path }}"
+  register: openvpn_client_list
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: Remove temporary local index file
+  ansible.builtin.file:
+    path: "{{ openvpn_local_index_tmp.path }}"
+    state: absent
+  delegate_to: localhost
+  become: false
+
+- name: Show client list
+  ansible.builtin.debug:
+    msg: "{{ openvpn_client_list.stdout_lines }}"

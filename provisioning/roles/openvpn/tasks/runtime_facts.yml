@@ -1,0 +1,18 @@
+---
+- name: Read OpenVPN version
+  ansible.builtin.command:
+    argv:
+      - openvpn
+      - --version
+  register: openvpn_version_cmd
+  changed_when: false
+  failed_when: openvpn_version_cmd.stdout_lines | default([]) | length == 0
+
+- name: Derive OpenVPN runtime compatibility facts
+  ansible.builtin.set_fact:
+    openvpn_version_string: "{{ openvpn_version_cmd.stdout_lines[0].split()[1] }}"
+    openvpn_use_legacy_cipher_config: >-
+      {{
+        openvpn_force_legacy_cipher_config
+        or (openvpn_version_cmd.stdout_lines[0].split()[1] is version('2.5.0', '<'))
+      }}

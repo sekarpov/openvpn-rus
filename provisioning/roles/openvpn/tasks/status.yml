@@ -1,0 +1,92 @@
+---
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Read server certificate details
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - x509
+      - -in
+      - "{{ openvpn_pki_dir }}/issued/{{ openvpn_server_common_name }}.crt"
+      - -noout
+      - -subject
+      - -serial
+      - -enddate
+  register: openvpn_server_cert_info
+  changed_when: false
+
+- name: Read CRL file metadata
+  ansible.builtin.stat:
+    path: "{{ openvpn_pki_dir }}/crl.pem"
+  register: openvpn_crl_stat
+
+- name: Check listening UDP socket
+  ansible.builtin.shell: |
+    set -o pipefail
+    ss -lun | awk 'NR == 1 || $5 ~ /:{{ openvpn_port }}$/'
+  args:
+    executable: /bin/bash
+  register: openvpn_udp_listener
+  changed_when: false
+
+- name: Read PKI index
+  ansible.builtin.slurp:
+    src: "{{ openvpn_pki_dir }}/index.txt"
+  register: openvpn_status_index_slurp
+
+- name: Create temporary local index file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: .index.txt
+  register: openvpn_status_index_tmp
+  delegate_to: localhost
+  become: false
+
+- name: Write temporary status index file
+  ansible.builtin.copy:
+    content: "{{ openvpn_status_index_slurp.content | b64decode }}"
+    dest: "{{ openvpn_status_index_tmp.path }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+
+- name: Build PKI summary
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ playbook_dir }}/../scripts/pki_index_report.py"
+      - --mode
+      - summary
+      - --index
+      - "{{ openvpn_status_index_tmp.path }}"
+  register: openvpn_pki_summary
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: Remove temporary local index file
+  ansible.builtin.file:
+    path: "{{ openvpn_status_index_tmp.path }}"
+    state: absent
+  delegate_to: localhost
+  become: false
+
+- name: Show service status summary
+  ansible.builtin.debug:
+    msg:
+      - "Service: {{ ansible_facts.services[openvpn_service_name + '.service'].state | default('unknown') }}"
+      - "Enabled: {{ ansible_facts.services[openvpn_service_name + '.service'].status | default('unknown') }}"
+      - "Server certificate:"
+      - "{{ openvpn_server_cert_info.stdout_lines | join(' | ') }}"
+      - >-
+        CRL updated:
+        {{
+          ('%Y-%m-%d %H:%M:%S' | strftime(openvpn_crl_stat.stat.mtime | int))
+          if openvpn_crl_stat.stat.exists | default(false)
+          else 'absent'
+        }}
+      - "Listener:"
+      - "{{ openvpn_udp_listener.stdout_lines | default(['no socket info']) }}"
+      - "PKI summary:"
+      - "{{ openvpn_pki_summary.stdout_lines }}"

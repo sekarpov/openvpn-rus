@@ -1,0 +1,43 @@
+---
+- name: Ensure local client profile directory exists
+  ansible.builtin.file:
+    path: "{{ openvpn_local_client_profile_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+
+- name: Read CA certificate
+  ansible.builtin.slurp:
+    src: "{{ openvpn_pki_dir }}/ca.crt"
+  register: openvpn_client_ca_slurp
+  no_log: true
+
+- name: Read client certificate
+  ansible.builtin.slurp:
+    src: "{{ openvpn_pki_dir }}/issued/{{ openvpn_client_name }}.crt"
+  register: openvpn_client_cert_slurp
+  no_log: true
+
+- name: Read client private key
+  ansible.builtin.slurp:
+    src: "{{ openvpn_pki_dir }}/private/{{ openvpn_client_name }}.key"
+  register: openvpn_client_key_slurp
+  no_log: true
+
+- name: Read tls-crypt key
+  ansible.builtin.slurp:
+    src: "{{ openvpn_server_conf_dir }}/{{ openvpn_tls_crypt_filename }}"
+  register: openvpn_client_tls_crypt_slurp
+  when: openvpn_tls_crypt_enabled
+  no_log: true
+
+- name: Render local client profile
+  ansible.builtin.template:
+    src: client.ovpn.j2
+    dest: "{{ openvpn_local_client_artifact_path }}"
+    mode: "{{ openvpn_file_mode_private }}"
+    backup: true
+  delegate_to: localhost
+  become: false
+  no_log: true

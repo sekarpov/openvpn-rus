@@ -1,0 +1,23 @@
+---
+- name: Validate requested client
+  ansible.builtin.import_tasks: validate_client.yml
+
+- name: Ensure client does not already exist
+  ansible.builtin.assert:
+    that:
+      - openvpn_client_index_status.stdout == "absent"
+    fail_msg: "Client {{ openvpn_client_name }} already exists in PKI history. Use client-renew or a new client name."
+
+- name: Build client certificate
+  ansible.builtin.command: "./easyrsa --batch build-client-full {{ openvpn_client_name }} nopass"
+  args:
+    chdir: "{{ openvpn_easy_rsa_dir }}"
+  environment:
+    EASYRSA_CERT_EXPIRE: "{{ openvpn_client_expire_days | string }}"
+
+- name: Rebuild local client artifact
+  ansible.builtin.import_tasks: render_client_artifact.yml
+
+- name: Report generated client profile path
+  ansible.builtin.debug:
+    msg: "Generated {{ openvpn_local_client_artifact_path }}"

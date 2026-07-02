@@ -1,0 +1,58 @@
+port {{ openvpn_port }}
+proto {{ openvpn_proto }}
+dev {{ openvpn_dev }}
+topology {{ openvpn_topology }}
+
+ca {{ openvpn_server_conf_dir }}/{{ openvpn_ca_cert_filename }}
+cert {{ openvpn_server_conf_dir }}/{{ openvpn_server_cert_filename }}
+key {{ openvpn_server_conf_dir }}/{{ openvpn_server_key_filename }}
+crl-verify {{ openvpn_server_conf_dir }}/{{ openvpn_crl_filename }}
+{% if openvpn_use_dh %}
+dh {{ openvpn_server_conf_dir }}/{{ openvpn_dh_filename }}
+{% else %}
+dh none
+ecdh-curve {{ openvpn_ecdh_curve }}
+{% endif %}
+{% if openvpn_tls_crypt_enabled %}
+tls-crypt {{ openvpn_server_conf_dir }}/{{ openvpn_tls_crypt_filename }}
+{% endif %}
+
+server {{ openvpn_server_network }} {{ openvpn_server_netmask }}
+ifconfig-pool-persist {{ openvpn_server_conf_dir }}/ipp.txt
+
+{% if openvpn_redirect_gateway %}
+push "redirect-gateway def1 bypass-dhcp"
+{% endif %}
+{% for dns in openvpn_push_dns %}
+push "dhcp-option DNS {{ dns }}"
+{% endfor %}
+{% for route in openvpn_push_routes %}
+push "route {{ route }}"
+{% endfor %}
+
+keepalive {{ openvpn_keepalive_interval }} {{ openvpn_keepalive_timeout }}
+persist-key
+persist-tun
+user {{ openvpn_run_user }}
+group {{ openvpn_run_group }}
+
+verify-client-cert require
+remote-cert-tls client
+tls-version-min {{ openvpn_tls_version_min }}
+auth {{ openvpn_auth_digest }}
+{% if openvpn_use_legacy_cipher_config %}
+ncp-ciphers {{ openvpn_data_ciphers | join(':') }}
+cipher {{ openvpn_data_ciphers_fallback }}
+{% else %}
+data-ciphers {{ openvpn_data_ciphers | join(':') }}
+data-ciphers-fallback {{ openvpn_data_ciphers_fallback }}
+{% if openvpn_emit_legacy_cipher_directive %}
+cipher {{ openvpn_data_ciphers_fallback }}
+{% endif %}
+{% endif %}
+
+status {{ openvpn_status_log }}
+status-version 2
+log-append {{ openvpn_log_file }}
+verb {{ openvpn_verb }}
+explicit-exit-notify 1

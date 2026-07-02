@@ -1,0 +1,68 @@
+---
+- name: Deploy CA certificate
+  ansible.builtin.copy:
+    src: "{{ openvpn_pki_dir }}/ca.crt"
+    dest: "{{ openvpn_server_conf_dir }}/{{ openvpn_ca_cert_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_public }}"
+    remote_src: true
+  notify: Restart openvpn
+
+- name: Deploy server certificate
+  ansible.builtin.copy:
+    src: "{{ openvpn_pki_dir }}/issued/{{ openvpn_server_common_name }}.crt"
+    dest: "{{ openvpn_server_conf_dir }}/{{ openvpn_server_cert_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_public }}"
+    remote_src: true
+  notify: Restart openvpn
+
+- name: Deploy server private key
+  ansible.builtin.copy:
+    src: "{{ openvpn_pki_dir }}/private/{{ openvpn_server_common_name }}.key"
+    dest: "{{ openvpn_server_conf_dir }}/{{ openvpn_server_key_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_private }}"
+    remote_src: true
+  notify: Restart openvpn
+
+- name: Deploy CRL
+  ansible.builtin.copy:
+    src: "{{ openvpn_pki_dir }}/crl.pem"
+    dest: "{{ openvpn_server_conf_dir }}/{{ openvpn_crl_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_public }}"
+    remote_src: true
+  notify: Restart openvpn
+
+- name: Deploy DH parameters
+  ansible.builtin.copy:
+    src: "{{ openvpn_pki_dir }}/{{ openvpn_dh_filename }}"
+    dest: "{{ openvpn_server_conf_dir }}/{{ openvpn_dh_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_public }}"
+    remote_src: true
+  when: openvpn_use_dh
+  notify: Restart openvpn
+
+- name: Ensure tls-crypt key permissions
+  ansible.builtin.file:
+    path: "{{ openvpn_server_conf_dir }}/{{ openvpn_tls_crypt_filename }}"
+    owner: root
+    group: root
+    mode: "{{ openvpn_file_mode_private }}"
+  when: openvpn_tls_crypt_enabled
+
+- name: Render OpenVPN server config
+  ansible.builtin.template:
+    src: server.conf.j2
+    dest: "{{ openvpn_server_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart openvpn

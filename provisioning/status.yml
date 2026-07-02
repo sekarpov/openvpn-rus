@@ -1,0 +1,8 @@
+---
+- name: Report OpenVPN status
+  hosts: openvpn
+  become: true
+  roles:
+    - role: openvpn
+      vars:
+        openvpn_operation: status
