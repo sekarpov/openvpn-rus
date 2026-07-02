@@ -1,5 +1,5 @@
 ---
-openvpn_profile_name: netherland
+openvpn_profile_name: rus
 openvpn_instance_name: server
 openvpn_remote_host: vpn.example.com
 openvpn_port: 1194

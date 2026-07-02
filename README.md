@@ -1,4 +1,4 @@
-# OpenVPN Netherland
+# OpenVPN RUS
 
 Production-oriented automation for OpenVPN server provisioning and client profile lifecycle management using `Makefile` and Ansible.
 
