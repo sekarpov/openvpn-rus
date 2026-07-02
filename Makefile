@@ -1,4 +1,4 @@
-.PHONY: help provision client-create client-config client-renew client-revoke list-clients server-renew status
+.PHONY: help provision client-create client-config client-renew client-revoke client-rotate list-clients server-renew status
 
 ANSIBLE_DIR := provisioning
 INVENTORY ?= production
@@ -16,6 +16,7 @@ help:
 	'  make client-config INVENTORY=production CLIENT=alice' \
 	'  make client-renew INVENTORY=production CLIENT=alice' \
 	'  make client-revoke INVENTORY=production CLIENT=alice' \
+	'  make client-rotate INVENTORY=production CLIENT=alice' \
 	'  make list-clients INVENTORY=production' \
 	'  make server-renew INVENTORY=production' \
 	'  make status INVENTORY=production'
@@ -34,6 +35,8 @@ client-config:
 client-renew:
 	@test -n "$(CLIENT)" || (echo "CLIENT is required"; exit 1)
 	$(ANSIBLE_PLAYBOOK) $(ANSIBLE_EXTRA_VARS) -e openvpn_client_name=$(CLIENT) $(ANSIBLE_DIR)/client-renew.yml
+
+client-rotate: client-renew
 
 client-revoke:
 	@test -n "$(CLIENT)" || (echo "CLIENT is required"; exit 1)

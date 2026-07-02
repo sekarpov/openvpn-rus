@@ -3,7 +3,7 @@ all:
   children:
     openvpn:
       hosts:
-        vpn-nl-1:
+        vpn-rus-1:
           ansible_connection: ssh
           ansible_host: 203.0.113.10
           ansible_port: 22
