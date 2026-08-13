@@ -1,3 +1,4 @@
+.idea
 other_services
 clients/*.ovpn
 clients/**/*.ovpn

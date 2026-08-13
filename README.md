@@ -156,6 +156,137 @@ cd /home/sekarpov/my-projects/openvpn-rus
 make status INVENTORY=production
 ```
 
+## Настройка клиента на Ubuntu
+
+### 1. Подготовить клиентский профиль
+
+Сначала создай или перевыпусти клиентский профиль в этом репозитории:
+
+```bash
+cd /home/sekarpov/my-projects/openvpn-rus
+make client-create INVENTORY=production CLIENT=client_name
+```
+
+Если профиль уже был, но сертификат истёк или нужен новый ключ:
+
+```bash
+cd /home/sekarpov/my-projects/openvpn-rus
+make client-renew INVENTORY=production CLIENT=client_name
+```
+
+Готовый файл появится здесь:
+
+```bash
+clients/rus/client_name.ovpn
+```
+
+### 2. Установить профиль в систему
+
+Скопируй `.ovpn` в системную директорию OpenVPN:
+
+```bash
+sudo cp clients/rus/client_name.ovpn /etc/openvpn/client/client_name.ovpn
+sudo chmod 600 /etc/openvpn/client/client_name.ovpn
+```
+
+Важно: unit в Ubuntu ожидает профиль именно по пути:
+
+```bash
+/etc/openvpn/client/client_name.ovpn
+```
+
+Если положить файл в другое место, например в `/etc/openvpn/client/rus/`, этот unit его не подхватит.
+
+### 3. Запустить подключение
+
+Запуск через systemd:
+
+```bash
+pkexec systemctl start openvpn-client-rus@client_name
+```
+
+Остановка:
+
+```bash
+pkexec systemctl stop openvpn-client-rus@client_name
+```
+
+Перезапуск после замены профиля:
+
+```bash
+pkexec systemctl restart openvpn-client-rus@client_name
+```
+
+### 4. Проверить, что VPN реально поднялся
+
+Проверить статус сервиса:
+
+```bash
+systemctl status openvpn-client-rus@client_name --no-pager
+```
+
+Проверить лог:
+
+```bash
+journalctl -u openvpn-client-rus@client_name -n 50 --no-pager
+```
+
+Главный признак успешного подключения:
+
+```text
+Initialization Sequence Completed
+```
+
+Проверить интерфейс и маршруты:
+
+```bash
+ip -brief addr show tun0
+ip route
+```
+
+При успешном подключении обычно видно:
+
+- интерфейс `tun0` в состоянии `UP`;
+- адрес из сети VPN, например `10.8.0.x/24`;
+- маршруты `0.0.0.0/1` и `128.0.0.0/1` через `10.8.0.1`.
+
+Проверить внешний IP:
+
+```bash
+curl ifconfig.me
+```
+
+Если VPN с `redirect-gateway` включён, внешний IP должен стать IP VPN-сервера, а не домашнего провайдера.
+
+### 5. Если не подключается
+
+Сначала смотри лог сервиса:
+
+```bash
+journalctl -u openvpn-client-rus@client_name -n 100 --no-pager
+```
+
+Частые признаки проблем:
+
+- `TLS Error: TLS handshake failed` — соединение не завершило TLS-рукопожатие;
+- `certificate has expired` — клиентский сертификат истёк, профиль нужно перевыпустить;
+- нет строки `Initialization Sequence Completed` — VPN не поднялся до конца.
+
+Для детальной диагностики можно запустить профиль вручную:
+
+```bash
+sudo openvpn --config /etc/openvpn/client/client_name.ovpn --verb 4
+```
+
+Если видишь предупреждение про истёкший сертификат, перевыпусти клиента:
+
+```bash
+cd /home/sekarpov/my-projects/openvpn-rus
+make client-renew INVENTORY=production CLIENT=client_name
+```
+
+Потом замени системный `.ovpn` новым файлом и перезапусти сервис.
+
 ## Где искать результат
 
 Все готовые клиентские файлы складываются сюда:
