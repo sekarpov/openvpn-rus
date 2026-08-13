@@ -1,0 +1,6 @@
+---
+- name: Provision 3proxy HTTP/HTTPS proxy
+  hosts: proxy
+  become: true
+  roles:
+    - role: proxy3

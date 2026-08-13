@@ -1,0 +1,17 @@
+---
+- name: Validate that at least one proxy user is configured
+  ansible.builtin.assert:
+    that:
+      - proxy3_users | length > 0
+    fail_msg: >-
+      proxy3_users пуст. Задай хотя бы один { name, password } —
+      обычно в inventories/<env>/group_vars/proxy.vault.yml.
+
+- name: Render 3proxy configuration
+  ansible.builtin.template:
+    src: 3proxy.cfg.j2
+    dest: "{{ proxy3_config_path }}"
+    owner: root
+    group: "{{ proxy3_system_group }}"
+    mode: "0640"
+  notify: Restart 3proxy

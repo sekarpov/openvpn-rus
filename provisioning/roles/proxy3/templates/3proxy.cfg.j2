@@ -1,0 +1,18 @@
+#!/usr/local/bin/3proxy
+# {{ ansible_managed }}
+
+nscache {{ proxy3_nscache_size }}
+{% for ns in proxy3_dns_servers %}
+nserver {{ ns }}
+{% endfor %}
+timeouts {{ proxy3_timeouts }}
+
+log {{ proxy3_log_path }} D
+rotate {{ proxy3_log_rotate_days }}
+
+users {% for u in proxy3_users %}{{ u.name }}:CL:{{ u.password }}{% if not loop.last %}/{% endif %}{% endfor %}
+
+auth strong
+allow {{ proxy3_users | map(attribute='name') | join(',') }}
+
+proxy -p{{ proxy3_port }} -i{{ proxy3_bind_address }}{% if proxy3_external_ip %} -e{{ proxy3_external_ip }}{% endif %}

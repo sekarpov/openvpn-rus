@@ -1,0 +1,19 @@
+---
+# INPUT-цепочка на этом сервере по умолчанию ACCEPT, так что порт и так
+# доступен. Но правило добавляем явно и сохраняем на диск — это переживёт
+# ужесточение firewall в будущем и не зависит от других плейбуков.
+- name: Ensure iptables-persistent is installed
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+
+- name: Allow inbound TCP to the proxy port
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ proxy3_port }}"
+    ctstate: NEW
+    jump: ACCEPT
+    comment: "3proxy: allow proxy clients"
+    action: insert
+  notify: Persist iptables rules

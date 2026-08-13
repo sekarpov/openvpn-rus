@@ -8,7 +8,8 @@
 - выпускает клиентские сертификаты;
 - перевыпускает клиентские сертификаты;
 - отзывает клиентские сертификаты;
-- собирает готовые `.ovpn` профили локально в `clients/rus/`.
+- собирает готовые `.ovpn` профили локально в `clients/rus/`;
+- поднимает свой HTTP/HTTPS-прокси (3proxy) с авторизацией по логину/паролю.
 
 ## Быстрый старт
 
@@ -125,6 +126,16 @@ make client-revoke INVENTORY=production CLIENT=client_name
 ```bash
 make server-renew INVENTORY=production
 ```
+
+### Поднять свой HTTP/HTTPS-прокси
+
+Собирает 3proxy из исходников, настраивает авторизацию и открывает порт в firewall.
+
+```bash
+make proxy-provision INVENTORY=production
+```
+
+Подробности — в разделе [Свой прокси (3proxy)](#свой-httphttps-прокси-3proxy).
 
 ## Самые частые сценарии
 
@@ -300,6 +311,88 @@ clients/rus/
 ```bash
 clients/rus/client_dasha_spb.ovpn
 ```
+
+## Свой HTTP/HTTPS-прокси (3proxy)
+
+Отдельно от OpenVPN на том же сервере (`217.18.60.199`) можно поднять свой
+прокси на базе [3proxy](https://github.com/3proxy/3proxy), с авторизацией
+по логину/паролю — как у обычных купленных прокси вида
+`login:password@ip:port`.
+
+### Поднять / обновить
+
+```bash
+cd /home/sekarpov/my-projects/openvpn-rus
+make proxy-provision INVENTORY=production
+```
+
+Плейбук идемпотентен: повторный запуск подтягивает изменения в
+`group_vars/proxy/vars.yml` / `group_vars/proxy/vault.yml` (порт, список
+пользователей) и перезапускает сервис при необходимости.
+
+### Где лежат настройки
+
+- `provisioning/proxy-provision.yml` — плейбук
+- `provisioning/roles/proxy3/` — роль (сборка 3proxy, конфиг, systemd-юнит, firewall)
+- `provisioning/inventories/production/group_vars/proxy/vars.yml` — порт и прочие несекретные параметры
+- `provisioning/inventories/production/group_vars/proxy/vault.yml` — логины/пароли клиентов прокси (**не коммитится**, см. `.gitignore`)
+
+### Как подключиться
+
+Строка подключения (HTTP/HTTPS proxy):
+
+```text
+login:password@217.18.60.199:8000
+```
+
+Логин и пароль — в `provisioning/inventories/production/group_vars/proxy/vault.yml`.
+При первой генерации роли туда уже вписана одна тестовая пара — замени её
+на свою и перезапусти `make proxy-provision`.
+
+Проверить, что прокси реально работает:
+
+```bash
+curl -x http://login:password@217.18.60.199:8000 https://ifconfig.me
+```
+
+Должен вернуться IP сервера `217.18.60.199`.
+
+### Добавить/поменять пользователей
+
+Отредактируй список `proxy3_users` в `group_vars/proxy/vault.yml`:
+
+```yaml
+proxy3_users:
+  - name: alice
+    password: "..."
+  - name: bob
+    password: "..."
+```
+
+И примени:
+
+```bash
+make proxy-provision INVENTORY=production
+```
+
+### Важно про этот прокси
+
+- пароли в `proxy/vault.yml` хранятся в открытом виде — файл исключён из git
+  через `.gitignore`; если всё же нужно закоммитить, сначала зашифруй его
+  через `ansible-vault encrypt`;
+- прокси собирается из исходников 3proxy (а не из `.deb`), потому что
+  готовые релизные бинарники рассчитаны на более новый glibc, чем стоит на
+  текущем сервере;
+- INPUT-цепочка iptables на сервере по умолчанию открыта (`ACCEPT`), так что
+  порт доступен снаружи и без отдельного правила; роль всё равно добавляет
+  явное правило и сохраняет его через `netfilter-persistent save` — на
+  случай, если INPUT когда-нибудь станет строже;
+- **важно:** `make provision` (роль `openvpn`) перезаписывает
+  `/etc/iptables/rules.v4` целиком своим шаблоном и не знает про правило
+  прокси. Если после `make proxy-provision` снова запустишь
+  `make provision`, живое правило в ядре останется (до перезагрузки), но
+  на диске пропадёт. После такой последовательности запусков стоит один
+  раз перезапустить `make proxy-provision`, чтобы правило снова сохранилось.
 
 ## Важно
 

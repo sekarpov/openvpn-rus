@@ -1,0 +1,6 @@
+---
+# Логины/пароли клиентов прокси. Держи под ansible-vault или хотя бы
+# вне git — этот .dist только показывает формат.
+proxy3_users:
+  - name: CHANGE_ME
+    password: CHANGE_ME

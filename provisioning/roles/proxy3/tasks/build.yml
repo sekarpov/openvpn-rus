@@ -1,0 +1,36 @@
+---
+# Собираем 3proxy из исходников, а не ставим готовый .deb: релизные бинарники
+# 3proxy собраны под более новый glibc и не гарантированно запустятся на
+# старом Debian (сервер сейчас на buster). Сборка из исходников — самый
+# надёжный вариант для любого возраста дистрибутива.
+- name: Ensure build toolchain is installed
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - git
+    state: present
+    update_cache: true
+
+- name: Fetch 3proxy source ({{ proxy3_version }})
+  ansible.builtin.git:
+    repo: "{{ proxy3_repo_url }}"
+    dest: "{{ proxy3_src_dir }}"
+    version: "{{ proxy3_version }}"
+    force: true
+
+- name: Build 3proxy
+  ansible.builtin.command: make -f Makefile.Linux
+  args:
+    chdir: "{{ proxy3_src_dir }}"
+  register: proxy3_build
+  changed_when: "'Nothing to be done' not in proxy3_build.stdout"
+
+- name: Install 3proxy binary
+  ansible.builtin.copy:
+    src: "{{ proxy3_src_dir }}/bin/3proxy"
+    dest: "{{ proxy3_bin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  notify: Restart 3proxy

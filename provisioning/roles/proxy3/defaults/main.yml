@@ -1,0 +1,50 @@
+---
+proxy3_version: "0.9.8"
+proxy3_repo_url: https://github.com/3proxy/3proxy.git
+proxy3_src_dir: "/usr/local/src/3proxy-{{ proxy3_version }}"
+proxy3_bin_path: /usr/local/bin/3proxy
+
+proxy3_system_user: proxy3
+proxy3_system_group: proxy3
+
+proxy3_config_dir: /etc/3proxy
+proxy3_config_path: "{{ proxy3_config_dir }}/3proxy.cfg"
+
+proxy3_log_dir: /var/log/3proxy
+proxy3_log_path: "{{ proxy3_log_dir }}/3proxy.log"
+proxy3_log_rotate_days: 30
+
+proxy3_service_name: 3proxy
+
+# Порт, на котором прокси слушает клиентов, и адрес для входящих подключений.
+proxy3_port: 8000
+proxy3_bind_address: 0.0.0.0
+
+# Если у сервера несколько IP и исходящий трафик прокси должен идти
+# через конкретный адрес — укажи его здесь. Пусто = система выбирает сама.
+proxy3_external_ip: ""
+
+proxy3_dns_servers:
+  - 8.8.8.8
+  - 1.1.1.1
+proxy3_nscache_size: 65536
+proxy3_timeouts: "1 5 30 60 180 1800 15 60"
+
+# Список учётных записей клиентов прокси: [{ name: "...", password: "..." }, ...]
+# Пароли держи в group_vars/<group>.vault.yml, не в открытом виде.
+proxy3_users: []
+
+proxy3_manage_firewall: true
+proxy3_public_interface: eth0
+
+# Сервер сейчас на Debian buster (EOL) — штатные зеркала сняты с раздачи.
+# При необходимости переписываем apt-источники на archive.debian.org,
+# чтобы `apt` вообще смог поставить build-essential/git.
+proxy3_manage_debian_eol_repos: true
+proxy3_debian_eol_releases:
+  - jessie
+  - stretch
+  - buster
+proxy3_debian_archive_mirror: http://archive.debian.org/debian
+proxy3_debian_security_archive_mirror: http://archive.debian.org/debian-security
+proxy3_debian_archive_disable_valid_until: true

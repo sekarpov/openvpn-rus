@@ -1,4 +1,4 @@
-.PHONY: help provision client-create client-config client-renew client-revoke client-rotate list-clients server-renew status
+.PHONY: help provision client-create client-config client-renew client-revoke client-rotate list-clients server-renew status proxy-provision
 
 ANSIBLE_DIR := provisioning
 INVENTORY ?= production
@@ -19,7 +19,8 @@ help:
 	'  make client-rotate INVENTORY=production CLIENT=alice' \
 	'  make list-clients INVENTORY=production' \
 	'  make server-renew INVENTORY=production' \
-	'  make status INVENTORY=production'
+	'  make status INVENTORY=production' \
+	'  make proxy-provision INVENTORY=production'
 
 provision:
 	$(ANSIBLE_PLAYBOOK) $(ANSIBLE_EXTRA_VARS) $(ANSIBLE_DIR)/provision.yml
@@ -50,3 +51,6 @@ server-renew:
 
 status:
 	$(ANSIBLE_PLAYBOOK) $(ANSIBLE_EXTRA_VARS) $(ANSIBLE_DIR)/status.yml
+
+proxy-provision:
+	$(ANSIBLE_PLAYBOOK) $(ANSIBLE_EXTRA_VARS) $(ANSIBLE_DIR)/proxy-provision.yml

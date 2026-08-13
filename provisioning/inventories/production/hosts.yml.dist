@@ -1,11 +1,16 @@
 ---
 # Задай реальный IP сервера и при необходимости пользователя/порт.
 all:
+  hosts:
+    vpn-rus-1:
+      ansible_connection: ssh
+      ansible_host: 203.0.113.10
+      ansible_port: 22
+      ansible_user: root
   children:
     openvpn:
       hosts:
-        vpn-rus-1:
-          ansible_connection: ssh
-          ansible_host: 203.0.113.10
-          ansible_port: 22
-          ansible_user: root
+        vpn-rus-1: {}
+    proxy:
+      hosts:
+        vpn-rus-1: {}

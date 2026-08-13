@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+[Unit]
+Description=3proxy tiny proxy server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{ proxy3_bin_path }} {{ proxy3_config_path }}
+User={{ proxy3_system_user }}
+Group={{ proxy3_system_group }}
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

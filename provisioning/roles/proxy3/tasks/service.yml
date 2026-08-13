@@ -1,0 +1,32 @@
+---
+- name: Render 3proxy systemd unit
+  ansible.builtin.template:
+    src: 3proxy.service.j2
+    dest: "/etc/systemd/system/{{ proxy3_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for 3proxy
+
+- name: Flush handlers before service checks
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure 3proxy service is enabled and started
+  ansible.builtin.service:
+    name: "{{ proxy3_service_name }}"
+    enabled: true
+    state: started
+
+- name: Wait until 3proxy service becomes active
+  ansible.builtin.command: "systemctl is-active {{ proxy3_service_name }}"
+  register: proxy3_service_active_wait
+  retries: 10
+  delay: 2
+  until: proxy3_service_active_wait.stdout == "active"
+  changed_when: false
+
+- name: Assert 3proxy service is active
+  ansible.builtin.assert:
+    that:
+      - proxy3_service_active_wait.stdout == "active"
+    fail_msg: "3proxy service {{ proxy3_service_name }} is not active"

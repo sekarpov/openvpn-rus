@@ -1,0 +1,31 @@
+---
+- name: Create 3proxy system group
+  ansible.builtin.group:
+    name: "{{ proxy3_system_group }}"
+    system: true
+    state: present
+
+- name: Create 3proxy system user
+  ansible.builtin.user:
+    name: "{{ proxy3_system_user }}"
+    group: "{{ proxy3_system_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+
+- name: Create 3proxy config directory
+  ansible.builtin.file:
+    path: "{{ proxy3_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ proxy3_system_group }}"
+    mode: "0750"
+
+- name: Create 3proxy log directory
+  ansible.builtin.file:
+    path: "{{ proxy3_log_dir }}"
+    state: directory
+    owner: "{{ proxy3_system_user }}"
+    group: "{{ proxy3_system_group }}"
+    mode: "0750"
